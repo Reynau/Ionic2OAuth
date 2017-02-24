@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import {NavController, Platform, AlertController } from 'ionic-angular';
+import { HTTP } from 'ionic-native';
 
 declare let window: any;
 
@@ -11,9 +12,12 @@ export class HomePage {
   private fibAuthUrl = 'https://api.fib.upc.edu/v2/o/authorize/';
   private fibTokenUrl = 'https://api.fib.upc.edu/v2/o/token/';
 
-  private client_id = 'CLIENT_ID';
-  private client_secret = 'CLIENT_SECRET';
+  private client_id = 'ggsolLClS4uVnQYYNKNJAsMgwNM2jZFDFVe7dUhx';
+  private client_secret = 'AeLfrt9bUkCEtAahONM6QA2IZJSBCFXsTZJyGPi2m2BlHMl0g5PVA5oAbcXBMCLPLp6VvVcpanj9256MlyPimVVEtgz4H9pJrcHFWbEny5M4Keims1HlWwsbR6tPemWy';
+
   private auth_code = null;
+  private auth_token = null;
+  private auth_refresh_token = null;
 
   constructor(public navCtrl: NavController,
               private platform: Platform,
@@ -34,8 +38,8 @@ export class HomePage {
     let _self = this;
     this.auth_code = authCode;
     this.fibAuthenticate().then(
-      data => _self.handleAuthToken(data),
-      error => _self.handleAuthError(error)
+      data => _self.handleAuthToken(data.data),
+      error => _self.handleAuthError(error.error)
     );
   }
 
@@ -62,42 +66,35 @@ export class HomePage {
     });
   }
   private fibAuthenticate(): Promise<any> {
-    let _self = this;
-    return new Promise(function(resolve, reject) {
-      let xhr = new XMLHttpRequest();
-
-      xhr.open("POST", _self.fibTokenUrl, true);
-
-      xhr.onload = function (e) {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            resolve(xhr.responseText);
-          } else {
-            reject(xhr.statusText);
-          }
-        }
-      };
-      xhr.onerror = function (e) {
-        reject(xhr.statusText);
-      };
-
-      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-
-      let params = 'grant_type=authorization_code&'
-        + 'redirect_uri=http://localhost/callback&'
-        + 'client_id=' + _self.client_id + '&'
-        + 'client_secret=' + _self.client_secret + '&'
-        + 'code=' + _self.auth_code;
-
-      xhr.send(params);
-    })
+    let header = {
+      "Content-type": "application/x-www-form-urlencoded"
+    };
+    let body = {
+      'grant_type': 'authorization_code',
+      'redirect_uri': 'http://localhost/callback',
+      'client_id': this.client_id,
+      'client_secret': this.client_secret,
+      'code': this.auth_code
+    };
+    return HTTP.post(this.fibTokenUrl, body, header);
+  }
+  private fibRefreshToken(): Promise<any> {
+    let header = {
+      "Content-type": "application/x-www-form-urlencoded"
+    };
+    let body = {
+      'client_id': this.client_id,
+      'client_secret': this.client_secret,
+      'refresh_token': this.auth_refresh_token
+    };
+    return HTTP.post(this.fibTokenUrl, body, header);
   }
 
   private handleAuthToken(data: string) {
-    alert(data);
+    alert('Data: ' + data);
   }
   private handleAuthError(error) {
-    alert(error);
+    alert('Error: ' + error);
   }
 
   private static getAuthCode(params: string): string {
